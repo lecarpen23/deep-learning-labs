@@ -1,0 +1,47 @@
+---
+title: 'Lab-2.1: Multi-variable neural-network regression'
+jupyter: python3
+---
+
+
+In this lab we perform multi-variable regression with a dense feed forward ANN on the Boston housing data-set using Keras. 
+  
+**Submission:**
+
+* You need to upload ONE document to Canvas when you are done
+  * (1) A PDF (or HTML) of the completed form of this notebook 
+* The final uploaded version should NOT have any code-errors present 
+* All outputs must be visible in the uploaded version, including code-cell outputs, images, graphs, etc
+
+**Instructions** 
+
+* Code regression using a deep feed forward fully connected Neural network
+  * Use a dense feed forward ANN model
+  * **You only need to do this week's example with Keras (i.e. no PyTorch)**
+  * Normalize the data as needed
+  * Visualize the results at the end where possible
+  * Partition data into training, validation, and test
+  * Monitor training and validation throughout training by plotting
+  * Print training, validation, and test errors at the very end
+  * You `MUST` use early stopping: [click here](https://keras.io/api/callbacks/early_stopping/)
+  * Do `MANUAL` hyper parameter tuning to try to achieve an optimal fit model
+    * i.e. best training/validation loss without over-fitting
+    * Explore L1 and L2 regularization and dropout
+    * Explore different optimizers 
+    * Use the loss functions specified in the textbook
+    * Explore different options for activation functions, network size/depth, etc
+* **Document what is going on in the code, as needed, with narrative markdown text between cells.**
+* *Submit the version with hyper parameters that provide the optimal fit*
+  * i.e. you don't need to show the outputs of your hyper-parameter tuning process
+  
+**Reference: The Keras portion of this assignment is included as an example in the text book**
+
+  * See the textbook (Chollet chapter-3, page 85) for reference 
+
+
+```{python}
+from keras.datasets import boston_housing
+(x_train, y_train), (x_test, y_test) = boston_housing.load_data()
+```
+
+

@@ -1,9 +1,14 @@
 ---
-title: "Lab 1.2"
-author: "Landon Carpenter"
-code-fold: true
-self-contained: true
-output: "lab1.2.html"
+title: 'Lab-1.2'
+
+format:
+  html:
+    toc: true
+    self-contained: true
+    code-fold: false
+    output-file: "Lab-1.2.html"
+    embed-resources: true
+
 jupyter: python3
 ---
 
