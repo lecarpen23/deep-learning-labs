@@ -1,5 +1,14 @@
 ---
-title: 'Lab-2.1: Multi-variable neural-network regression'
+title: 'Lab-2.1'
+
+format:
+  html:
+    toc: true
+    self-contained: true
+    code-fold: false
+    output-file: "Lab-2.1.html"
+    embed-resources: true
+
 jupyter: python3
 ---
 
@@ -41,7 +50,137 @@ In this lab we perform multi-variable regression with a dense feed forward ANN o
 
 ```{python}
 from keras.datasets import boston_housing
+from sklearn.preprocessing import StandardScaler
 (x_train, y_train), (x_test, y_test) = boston_housing.load_data()
+```
+
+```{python}
+#normalize data
+scaler = StandardScaler()
+train_data = scaler.fit_transform(x_train)
+test_data = scaler.transform(x_test)
+```
+
+```{python}
+#print first 5 rows of training data
+print(train_data[:5])
+```
+
+```{python}
+#print first 5 target values
+print(y_train[:5])
+```
+
+```{python}
+#partition data into training, validation, and test sets
+num_validation_samples = int(0.2 * len(train_data))
+val_data = train_data[:num_validation_samples]
+val_targets = y_train[:num_validation_samples]
+partial_train_data = train_data[num_validation_samples:]
+partial_train_targets = y_train[num_validation_samples:]
+
+#print the shape of train, test, and validation data
+print("train_data shape: ", train_data.shape)
+print("test_data shape: ", test_data.shape)
+print("val_data shape: ", val_data.shape)
+```
+
+```{python}
+from tensorflow.keras import models, layers, regularizers
+
+#unregularized model
+def build_model():
+    model = models.Sequential() #linear stack of layers
+    model.add(layers.Dense(64, activation='relu',
+                            input_shape=(train_data.shape[1],))) #input shape is the number of features
+    model.add(layers.Dense(64, activation='relu'))#relu is the rectified linear unit function
+    model.add(layers.Dense(1)) #no activation function for a regression model
+    model.compile(optimizer='rmsprop', loss='mse', metrics=['mae']) #mean squared error loss function, mse specified on page 86 of textbook
+    return model
+```
+
+# Building a Baseline 
+
+```{python}
+from tensorflow.keras.callbacks import EarlyStopping
+
+early_stopping = EarlyStopping(monitor='val_loss', patience=25) #stop training when the validation loss stops decreasing per assignment requirements
+
+model = build_model()
+history = model.fit(partial_train_data, partial_train_targets, epochs=250, validation_data=(val_data, val_targets), callbacks=[early_stopping], batch_size=1, verbose=0)
+```
+
+# Final Model
+
+```{python}
+#model with L2 regularization and dropout
+def build_model_tuned():
+    model = models.Sequential()
+    model.add(layers.Dense(64, activation='relu', 
+                           kernel_regularizer=regularizers.l2(0.001), 
+                           input_shape=(train_data.shape[1],)))
+    model.add(layers.Dropout(0.25))
+    model.add(layers.Dense(64, activation='relu', 
+                           kernel_regularizer=regularizers.l2(0.001)))
+    model.add(layers.Dropout(0.25))
+    model.add(layers.Dense(1))
+    model.compile(optimizer='adam', loss='mse', metrics=['mae']) #mse specified on page 86 of textbook
+    return model
+```
+
+```{python}
+final_model = build_model_tuned()
+final_hist = final_model.fit(train_data, y_train, epochs=250, batch_size=16, verbose=0, validation_split=0.2)
+test_mse_score, test_mae_score = final_model.evaluate(test_data, y_test)
+print(f'Test MSE: {test_mse_score}, Test MAE: {test_mae_score}')
+```
+
+```{python}
+import matplotlib.pyplot as plt
+
+loss = history.history['loss']
+val_loss = history.history['val_loss']
+epochs = range(1, len(loss) + 1)
+
+plt.figure()
+plt.plot(epochs, loss, '--', label='Training loss')
+plt.plot(epochs, val_loss, 'b', label='Validation loss')
+plt.title('Training and validation loss')
+plt.xlabel('Epochs')
+plt.ylabel('Loss')
+plt.legend()
+plt.show()
+```
+
+```{python}
+loss = final_hist.history['loss']
+val_loss = final_hist.history['val_loss']
+epochs = range(1, len(loss) + 1)
+
+plt.figure()
+plt.plot(epochs, loss, '--', label='Training Loss')
+plt.plot(epochs, val_loss, 'b', label='Validation Loss')
+plt.title('Training and Validation Loss')
+plt.xlabel('Epochs')
+plt.ylabel('Loss')
+plt.legend()
+plt.show()
+```
+
+```{python}
+import matplotlib.pyplot as plt
+
+#get predictions
+test_predictions = final_model.predict(test_data).flatten()
+
+#actual vs. predicted values
+plt.figure(figsize=(8, 8))
+plt.scatter(y_test, test_predictions)
+plt.xlabel('Actual Values')
+plt.ylabel('Predicted Values')
+plt.title('Actual vs. Predicted Values')
+plt.plot([min(y_test), max(y_test)], [min(y_test), max(y_test)], color='red')  #ideal line where predicted = actual
+plt.show()
 ```
 
 
