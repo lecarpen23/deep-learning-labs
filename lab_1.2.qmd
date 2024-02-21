@@ -9,6 +9,7 @@ format:
     output-file: "Lab-1.2.html"
     embed-resources: true
 
+
 jupyter: python3
 ---
 
