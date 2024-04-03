@@ -1,0 +1,152 @@
+---
+title: 'Lab-3.2'
+
+format:
+  html:
+    toc: true
+    self-contained: true
+    code-fold: True
+    output-file: "Lab-3.2.html"
+    embed-resources: true
+
+jupyter: python3
+---
+
+## Overview 
+
+In this lab we explore image segmentation with PyTorch's pre-trained models.
+
+**Submission:**
+
+* You need to upload ONE document to Canvas when you are done
+  * (1) A PDF (or HTML) of the completed form of this notebook 
+* The final uploaded version should NOT have any code-errors present 
+* All outputs must be visible in the uploaded version, including code-cell outputs, images, graphs, etc
+
+# Original Image
+
+```{python}
+import torch 
+import torchvision
+import matplotlib.pyplot as plt
+
+# x=torchvision.io.read_image('luna-1.jpg')
+x=torchvision.io.read_image('luna-2.jpeg')
+plt.imshow(x.permute(1, 2, 0))
+```
+
+```{python}
+import torch
+from pathlib import Path
+from torchvision.io import read_image
+from torchvision.utils import make_grid
+from torchvision.transforms.functional import convert_image_dtype
+import torch.nn as nn
+import torchvision.transforms as T
+import numpy as np
+import matplotlib.pyplot as plt
+import matplotlib.colors as mcolors
+from torchvision import models
+from PIL import Image
+from torchvision.models.segmentation import fcn_resnet50, FCN_ResNet50_Weights
+```
+
+# Semantic segmentation
+
+Use the PyTorch pre-trained model to do semantic segmentation and then generate ALL of the following images
+
+```{python}
+weights = FCN_ResNet50_Weights.COCO_WITH_VOC_LABELS_V1
+transforms = weights.transforms(resize_size=None)
+
+model = fcn_resnet50(weights=weights, pretrained=True)
+model.eval()
+
+image_path = Path('luna-2.jpeg')
+luna1 = read_image(str(image_path))
+
+luna1 = convert_image_dtype(luna1, dtype=torch.float)
+luna1 = transforms(luna1).unsqueeze(0)
+
+with torch.no_grad():
+    output = model(luna1)['out']
+
+print(output.shape)
+```
+
+# Segmented Image
+
+```{python}
+#show the image
+plt.imshow(output[0, 0])
+```
+
+```{python}
+
+```
+
+# Overlaid Images
+
+```{python}
+fig = plt.figure()
+plt.imshow(output[0, 0])
+plt.imshow(x.permute(1, 2, 0), alpha=0.25)
+plt.show()
+```
+
+# Edge detection
+
+* Use calculus to compute the gradient field (via finite difference) of the masked image 
+* Use a threshold applied to the magnitude of the gradient vector to detect the edge 
+* then create BOTH of the following images
+
+```{python}
+def finite_dif(image):
+    grad_x = np.zeros_like(image)
+    grad_y = np.zeros_like(image)
+
+    grad_x[:, :-1] = image[:, 1:] - image[:, :-1]
+    grad_y[:-1, :] = image[1:, :] - image[:-1, :]
+
+    return grad_x, grad_y
+```
+
+# Segmented Edges
+
+```{python}
+#get image as numpy array
+segmentation_map = output[0].cpu().detach().numpy()
+
+#using the first class map
+class_map = segmentation_map[0]
+
+
+#get gradients
+grad_x, grad_y = finite_dif(class_map)
+
+#compute their magnitude
+grad_magnitude = np.sqrt(grad_x**2 + grad_y**2)
+
+#normalize the gradient magnitude
+grad_magnitude_normalized = (grad_magnitude - grad_magnitude.min()) / (grad_magnitude.max() - grad_magnitude.min())
+
+#set threshold for edge detection
+threshold = 0.4
+edges = grad_magnitude_normalized > threshold
+
+plt.figure()
+plt.imshow(edges, cmap='viridis')
+plt.axis('on')
+plt.show()
+```
+
+# Overlaid Image and Edges
+
+```{python}
+fig = plt.figure()
+plt.imshow(edges, cmap='viridis')
+plt.imshow(x.permute(1, 2, 0), alpha=0.25)
+plt.show()
+```
+
+

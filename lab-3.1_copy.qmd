@@ -1,0 +1,138 @@
+---
+title: 'Lab-3.1 MNIST'
+
+format:
+  html:
+    toc: true
+    self-contained: true
+    code-fold: false
+    output-file: "Lab-3.1-MNIST.html"
+    embed-resources: true
+
+jupyter: python3
+---
+
+
+In this lab we perform multi-class classification with a CNN using `PyTorch` **AND** `Keras`. 
+
+**Submission:**
+
+* You need to upload TWO documents to Canvas when you are done
+  * (1) A PDF (or HTML) of the completed form of the completed `MNIST.ipynb` notebook (MNIST in Keras)
+  * (1) A PDF (or HTML) of the completed form of the completed `CIFAR.ipynb` notebook (CIFAR in PyTorch)
+* The final uploaded version should NOT have any code-errors present 
+* All outputs must be visible in the uploaded version, including code-cell outputs, images, graphs, etc
+
+**Instructions** 
+
+* Code Multi-class classification using LeNet type architecture CNN to train
+  * (1) MNIST training with Keras, in `MNIST.ipynb`.
+  * (2) CIFAR training with PyTorch, in `CIFAR.ipynb`.
+  * **If you use an online reference, please cite the source and don't copy more than a few lines of code**
+  * Normalize the data as needed
+  * Visualize the results at the end where possible
+  * Partition data into training, validation, and test
+  * Monitor training and validation throughout training by plotting
+  * For the final fit, report the confusion matrix at the end
+  * Print training, validation, and test errors at the very end
+  * You `MUST` use early stopping: 
+  * Do basic `MANUAL` hyper-parameter tuning to try to achieve an optimal fit model
+    * i.e. best training/validation loss without over-fitting
+    * Explore L1 and L2 regularization and dropout
+    * Explore different optimizers 
+    * Use the loss functions specified in the textbook
+    * Explore different options for activation functions, network size/depth, etc
+* **Document what is going on in the code, as needed, with narrative markdown text between cells.**
+* *Submit the version with hyper parameters that provide the optimal fit*
+  * i.e. you don't need to show the outputs of your hyper-parameter tuning process
+
+
+# Imports
+
+```{python}
+import numpy as np
+import matplotlib.pyplot as plt
+from keras.models import Sequential
+from keras.layers import Conv2D, MaxPooling2D, Flatten, Dense, Dropout
+from keras.datasets import mnist
+from tensorflow.keras.utils import to_categorical
+from keras.callbacks import EarlyStopping
+
+import torch
+import torchvision
+import torchvision.transforms as transforms
+from torch.utils.data.sampler import SubsetRandomSampler
+import torch.nn as nn
+import torch.optim as optim
+import torch.nn.functional as F
+from torch.utils.data import DataLoader, random_split
+from torchvision import datasets, transforms
+from sklearn.metrics import confusion_matrix
+import itertools
+import seaborn as sns
+```
+
+# MNIST with Keras
+
+# Data for MNIST
+
+```{python}
+#load MNIST 
+(x_train, y_train), (x_test, y_test) = mnist.load_data()
+
+#normalize 
+x_train = x_train.astype('float32') / 255.0
+x_test = x_test.astype('float32') / 255.0
+
+#reshape for the CNN input and one-hot encode the labels
+x_train = x_train.reshape(x_train.shape[0], 28, 28, 1)
+x_test = x_test.reshape(x_test.shape[0], 28, 28, 1)
+y_train = to_categorical(y_train, 10)
+y_test = to_categorical(y_test, 10)
+```
+
+# Build Model 
+
+```{python}
+model = Sequential()
+model.add(Conv2D(32, kernel_size=(3, 3), activation='relu', input_shape=(28, 28, 1)))
+model.add(MaxPooling2D(pool_size=(2, 2)))
+model.add(Conv2D(64, (3, 3), activation='relu'))
+model.add(MaxPooling2D(pool_size=(2, 2)))
+model.add(Flatten())
+model.add(Dense(128, activation='relu'))
+model.add(Dropout(0.5))
+model.add(Dense(10, activation='softmax'))
+```
+
+# Compile
+
+```{python}
+model.compile(loss='categorical_crossentropy', optimizer='adam', metrics=['accuracy'])
+
+#define early stopping
+early_stopping = EarlyStopping(monitor='val_loss', patience=3)
+```
+
+# Train the Model 
+
+```{python}
+history = model.fit(x_train, y_train, batch_size=128, epochs=30, validation_split=0.2, verbose=2, callbacks=[early_stopping])
+```
+
+# Model Eval
+
+```{python}
+#evaluate on test data
+test_loss, test_acc = model.evaluate(x_test, y_test)
+print('Test accuracy:', test_acc)
+
+#plot training history
+plt.plot(history.history['accuracy'])
+plt.plot(history.history['val_accuracy'])
+plt.title('Model accuracy')
+plt.ylabel('Accuracy')
+plt.xlabel('Epoch')
+plt.legend(['Train', 'Validation'], loc='lower right')
+plt.show()
+```
